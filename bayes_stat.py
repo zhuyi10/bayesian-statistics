@@ -11,9 +11,9 @@ Functionalities:
 """
 
 
-def create_disc_distribution(values, probabilities):
+def create_disc_distribution(values, probabilities, normalize=False):
     """
-    Create the distribution of a single variable discrete random variable
+    Create a discrete distribution of a single random variable
     
     Input:
     values: a list of ordered values of a discrete random variable
@@ -30,11 +30,18 @@ def create_disc_distribution(values, probabilities):
     probabilities = [p/sp for p in probabilities]
     dist = create_discrete_distribution(values, probabilities)
     """
-    assert len(values) == len(probabilities), 'The lengths of values and probabilities do not match.'
+    len_p = len(probabilities)
+    assert len(values) == len_p, 'The length of values does not match that of probabilities.'
+    assert len([i for i in probabilities if i >= 0]) == len_p, 'Probabilities must greater than or equal to 0'
+    assert not normalize and sum(probabilities) == 1, 'The sum of probabilities is not 1. Use normalize=True'
+    if normalize:
+        sp = sum(probabilities)
+        probabilities = [p/sp for p in probabilities]
     dist = dict()
     for v, p in values, probabilities:
         dist[v] = p
     return dist
+    
 
 def cal_disc_percentile(dist, percentage):
     """
@@ -61,6 +68,7 @@ def cal_disc_percentile(dist, percentage):
         total += dist[i]
         if total > percentage:
             return i
+
 
 def cal_disc_likelihood(hypo_dist_list, data):
     """
@@ -231,3 +239,63 @@ def cal_disc_credible_interval(dist, level):
     left = (1 - significant_level) / 2
     right = significant_level + left
     return cal_disc_percentile(dist, left), cal_disc_percentile(dist, right)
+
+
+def create_beta_distribution_for_binomial(alpha, beta):
+    """
+    Create a beta distribution for a binomial random variable
+    
+    Input:
+    alpha, beta: when alpha=1 and beta=1, it is uniform from 0 to 1
+    
+    Output:
+    dist: a dictionary with two keys alpha and beta
+    
+    Example:
+    beta = create_beta_distribution_for_binomial(1, 1)
+    """
+    return {'alpha': alpha, 'beta': beta}
+
+
+def cal_beta_binomial_posterior(beta_dist, data):
+    """
+    Calculate the posterior of outcomes of a binomial random variable
+
+    Input:
+    beta_dist: beta density distribution
+    data: list of outcomes of a binomial random variable.
+          1 for success; 0 for failure
+    
+    Output:
+    posterior: posterior
+    
+    Example:
+    import random
+    beta_dist = create_beta_distribution_for_binomial(1, 1)
+    data = [random.randint(0, 1) for i in xrange(10)]
+    post_beta = cal_beta_binomial_posterior(beta_dist, data)
+    """
+    for i in data:
+        if i == 1:
+            beta_dist['alpha'] += 1
+        else:
+            beta_dist['beta'] += 1
+    return beta_dist
+
+
+def cal_mean_beta_binomial_posterior(beta_dist):
+    """
+    Calculate the mean of a beta distribution for a binomial random variable.
+    
+    Input:
+    beta_dist: beta density distribution
+
+    Output:
+    mean: the mean of the beta_dist
+    
+    Example:
+    import random
+    beta_dist = create_beta_distribution_for_binomial(1, 1)
+    mean = cal_mean_beta_binomial_posterior(beta_dist)
+    """
+    return float(beta_dist['alpha']) / (beta_dist['alpha'] + beta_dist['beta'])
